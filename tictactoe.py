@@ -5,108 +5,137 @@ import numpy as np
 from random import choice, uniform
 import pickle as pkl
 from time import time
-from numba import jit
+
 
 def main():
-	start = time()
-	#prob = createDict()
-	#pkl.dump(prob, open( 'probability.pkl', 'wb'))
-	prob = pkl.load( open('probability.pkl', 'rb') )
+    start = time()
+    #prob = createDict()
+    #pkl.dump(prob, open( 'probability.pkl', 'wb'))
+    prob = pkl.load(open('probability.pkl', 'rb'))
+    print(len(prob.keys()))
+    prob = fakeGame(prob)
+    print(time() - start)
 
-	print(time()- start)
-
-	prob = improveDict(prob)
-
-
-def improveDict(prob):
-	for state in prob.keys():
-
-		moves = getMoves( map(int, list(state) ) )
-
-		for move in moves:
-
-			winner = playGame(state, move, prob)
-
-			if winner == 1:
-				if prob[ state ][ move ] < 0.97: prob[ state ][ move ] += 0.03 
-			if winner == 2:
-				if 0.1 < prob[ state ][ move ]: prob[ state ][ move ] -= 0.01
-			else:
-				if prob[ state ][ move ] < 0.99: prob[ state ][ move ] += 0.01 
+    playGame(prob)
 
 
-def getMoves(state):
-	return [i for i, x in enumerate(state) if int(x) == 0]
+def playGame():
+    board = np.array(list("-" * 9), dtype=np.dtype('a1')).reshape((3, 3))
+    print('Welcome to Tic-Tac Toe! Enter a coord to begin')
 
-def playGame(state, move, prob):
-	state = map(int, list(state))
+    while not checkWin(board):
+        print(board)
+        board = board[:move] + 'O' + board[move + 1:]
+        board = computerTurn(board)
 
-	while not checkWin(state):
-		state = myTurn(state, prob)
-		state = oppTurn(state)
 
-	return checkWin(state)
+def computerTurn(board, prob):
+    board = str(board)
+    move = weighted_choice(getMoves(board), prob[board])
+    board = board[:move] + 'X' + board[move + 1:]
+    return np.array(list(board), dtype=np.dtype('a1')).reshape((3, 3))
 
-def myTurn(state, prob):
-	move = weighted_choice(getMoves(state), prob[ ''.join(str(v) for v in state) ])
-	state[move] = 1
-	return state
 
-def oppTurn(state):
-	move = choice( getMoves(state) )
-	state[move] = 2
-	return state
+def fakeGame(prob):
+    for board in prob.keys():
+        moves = getMoves(board)
+
+        for move in moves:
+            myTurn(board[:], prob)  # modified prob
+
+
+def myTurn(board, prob):
+    if checkWin(board):
+        return checkWin(board)
+
+    move = weighted_choice(getMoves(board), prob[board])
+    board = board[:move] + 'X' + board[move + 1:]
+
+    winner = oppTurn(board, prob)
+
+    board = board[:move] + '-' + board[move + 1:]
+
+    if winner == 'X':
+        if prob[board][move] < 0.97: prob[board][move] += 0.03
+    if winner == 'O':
+        if 0.1 < prob[board][move]: prob[board][move] -= 0.01
+    else:
+        if prob[board][move] < 0.99: prob[board][move] += 0.01
+
+    return winner
+
+
+def oppTurn(board, prob):
+    if checkWin(board):
+        return checkWin(board)
+
+    move = choice(getMoves(board))
+    print(move)
+    board = board[:move] + 'O' + board[move + 1:]
+
+    print(board)
+    return myTurn(board, prob)
+
+
+def getMoves(board):
+    return [i for i, x in enumerate(board) if x == '-']
+
 
 def weighted_choice(choices, weights):
-   r = uniform(0, 1)
-   upto = 0
+    weights = [weights[i] for i in choices]
+    r = uniform(0, 1)
+    upto = 0
 
-   print(choices, weights)
+    for c, w in zip(choices, weights):
+        if upto + w > r:
+            return c
+        upto += w
 
-   for c, w in zip(choices, weights):
-      if upto + w > r:
-         return c
-      upto += w
 
 def createDict():
-	prob = {}
+    prob = {}
 
-	for x in range(4):
-		for o in range(4):
-			for i in permutations(x*'1'+o*'2'+(9 - x - o)*'0'):
-				prob[ ''.join(i) ] = getMoves(i)
+    for x in range(5):
+        for o in range(5):
+            if abs(x - o) < 2:
+                for i in permutations(x * 'X' + o * 'O' + (9 - x - o) * '-'):
+                    if not checkWin(i):
+                        prob[''.join(i)] = [0]*9
 
-	return prob
+    return prob
 
-def checkWin(state):
 
-	state = np.array( state, dtype=int ).reshape( (3,3) )
-	win_prob = [
+def checkWin(board):
+    if board.count('-') == 0: return 'DRAW'
+
+    board = np.array(list(board), dtype=np.dtype('a1')).reshape((3, 3))
+    win_prob = [
         # horizontal
-        ((0,0), (1,0), (2,0)),
-        ((0,1), (1,1), (2,1)),
-        ((0,2), (1,2), (2,2)),
+        ((0, 0), (1, 0), (2, 0)),
+        ((0, 1), (1, 1), (2, 1)),
+        ((0, 2), (1, 2), (2, 2)),
         # vertical
-        ((0,0), (0,1), (0,2)),
-        ((1,0), (1,1), (1,2)),
-        ((2,0), (2,1), (2,2)),
+        ((0, 0), (0, 1), (0, 2)),
+        ((1, 0), (1, 1), (1, 2)),
+        ((2, 0), (2, 1), (2, 2)),
         # crossed
-        ((0,0), (1,1), (2,2)),
-        ((2,0), (1,1), (0,2))
+        ((0, 0), (1, 1), (2, 2)),
+        ((2, 0), (1, 1), (0, 2))
     ]
 
-	for win_state in win_prob:
-		in_a_row = ''
-		for coord in win_state:
-			in_a_row += str(state[coord])
+    for win_board in win_prob:
+        in_a_row = ''
+        for coord in win_board:
+            in_a_row += str(board[coord])
 
-		xs = in_a_row.count('1')
-		os = in_a_row.count('2')
+        xs = in_a_row.count('X')
+        os = in_a_row.count('O')
 
-		if xs == 2 or os == 2:
-			return 1 if xs > os else 2
+        if abs(xs - os) == 2:
+            return 'X' if xs > os else 'O'
 
-	return 0
+    return ''
+
 
 if __name__ == "__main__":
-	main()
+    main()
