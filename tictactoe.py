@@ -11,38 +11,66 @@ def main():
     start = time()
     #prob = createDict()
     #pkl.dump(prob, open( 'probability.pkl', 'wb'))
-    prob = pkl.load(open('probability.pkl', 'rb'))
+    #prob = pkl.load(open('probability.pkl', 'rb'))
+    prob = pkl.load(open('filled_prob.pkl', 'rb'))
     print(len(prob.keys()))
-    prob = fakeGame(prob)
+
+    #for _ in range(10000):
+    #    prob = fakeGame(prob)
+
+    #pkl.dump(prob, open( 'filled_prob.pkl', 'wb'))
+
     print(time() - start)
 
     playGame(prob)
 
+def pprint(obj):
+    print(obj[:3])
+    print(obj[3:6])
+    print(obj[6:9])
 
-def playGame():
-    board = np.array(list("-" * 9), dtype=np.dtype('a1')).reshape((3, 3))
-    print('Welcome to Tic-Tac Toe! Enter a coord to begin')
+def playGame(prob):
+    board = '-'*9
+    print('Welcome to Tic-Tac Toe!')
 
     while not checkWin(board):
-        print(board)
-        board = board[:move] + 'O' + board[move + 1:]
-        board = computerTurn(board)
+        print("Computer turn")
+        pprint(board)
+        board = computerTurn(board, prob)
 
+        pprint(board)
+        move = int( input('Enter a index, human\n' ) )
+        while board[move] != '-':
+            move = int( input('Try again, that index is taken\n') )
+        board = board[:move] + 'O' + board[move + 1:]
+
+    print(checkWin(board) + " won the game!")
 
 def computerTurn(board, prob):
-    board = str(board)
     move = weighted_choice(getMoves(board), prob[board])
+    print(prob[board])
     board = board[:move] + 'X' + board[move + 1:]
-    return np.array(list(board), dtype=np.dtype('a1')).reshape((3, 3))
+    return board
 
 
 def fakeGame(prob):
-    for board in prob.keys():
-        moves = getMoves(board)
+    board = '-'*9
+    moves = getMoves(board)
+    move = choice(moves)
+    board = board[:move] + 'X' + board[move+1:]
 
-        for move in moves:
-            myTurn(board[:], prob)  # modified prob
+    winner = myTurn(board, prob)  # modifies prob
 
+    board = board[:move] + '-' + board[move+1:]
+
+    if winner == 'X':
+        prob[board][move] += 3
+    if winner == 'O':
+        prob[board][move] -= 1
+    else:
+        prob[board][move] += 1
+
+    return prob
 
 def myTurn(board, prob):
     if checkWin(board):
@@ -56,11 +84,11 @@ def myTurn(board, prob):
     board = board[:move] + '-' + board[move + 1:]
 
     if winner == 'X':
-        if prob[board][move] < 0.97: prob[board][move] += 0.03
+        prob[board][move] += 3
     if winner == 'O':
-        if 0.1 < prob[board][move]: prob[board][move] -= 0.01
+        prob[board][move] -= 1
     else:
-        if prob[board][move] < 0.99: prob[board][move] += 0.01
+       prob[board][move] += 1
 
     return winner
 
@@ -70,10 +98,8 @@ def oppTurn(board, prob):
         return checkWin(board)
 
     move = choice(getMoves(board))
-    print(move)
     board = board[:move] + 'O' + board[move + 1:]
 
-    print(board)
     return myTurn(board, prob)
 
 
@@ -83,7 +109,7 @@ def getMoves(board):
 
 def weighted_choice(choices, weights):
     weights = [weights[i] for i in choices]
-    r = uniform(0, 1)
+    r = uniform(0, max(weights))
     upto = 0
 
     for c, w in zip(choices, weights):
@@ -95,47 +121,40 @@ def weighted_choice(choices, weights):
 def createDict():
     prob = {}
 
-    for x in range(5):
-        for o in range(5):
+    for x in range(6):
+        for o in range(6):
             if abs(x - o) < 2:
                 for i in permutations(x * 'X' + o * 'O' + (9 - x - o) * '-'):
-                    if not checkWin(i):
-                        prob[''.join(i)] = [0]*9
+                    prob[''.join(i)] = [1]*9
 
     return prob
 
 
 def checkWin(board):
-    if board.count('-') == 0: return 'DRAW'
+    boardCopy = board[:]
+    board = np.array(list(board), dtype=np.dtype('str')).reshape((3, 3))
 
-    board = np.array(list(board), dtype=np.dtype('a1')).reshape((3, 3))
-    win_prob = [
-        # horizontal
-        ((0, 0), (1, 0), (2, 0)),
-        ((0, 1), (1, 1), (2, 1)),
-        ((0, 2), (1, 2), (2, 2)),
-        # vertical
-        ((0, 0), (0, 1), (0, 2)),
-        ((1, 0), (1, 1), (1, 2)),
-        ((2, 0), (2, 1), (2, 2)),
-        # crossed
-        ((0, 0), (1, 1), (2, 2)),
-        ((2, 0), (1, 1), (0, 2))
-    ]
+    for row in board:
+        if all(row == 'X'):
+            return 'X'
+        elif all(row == 'O'):
+            return 'O'
 
-    for win_board in win_prob:
-        in_a_row = ''
-        for coord in win_board:
-            in_a_row += str(board[coord])
+    for col in board.T:
+        if all(col == 'X'):
+            return 'X'
+        elif all(col == 'O'):
+            return 'O'
 
-        xs = in_a_row.count('X')
-        os = in_a_row.count('O')
+    if all( np.diagonal(board) == 'X') or all( np.diagonal(board.T) == 'X'):
+        return 'X'
 
-        if abs(xs - os) == 2:
-            return 'X' if xs > os else 'O'
+    if all( np.diagonal(board) == 'O') or all( np.diagonal(board.T) == 'O'):
+        return 'O'
+
+    if boardCopy.count('-') == 0: return 'DRAW'
 
     return ''
-
 
 if __name__ == "__main__":
     main()
