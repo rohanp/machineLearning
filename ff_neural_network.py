@@ -7,7 +7,7 @@ from time import clock
 
 TRIALS = 3000
 ALPHA = 0.25 #learning rate
-INPUT = np.array( [ [i, j] + [-1] for i, j in product( (0,1), repeat=2) ], ndmin=2)
+INPUT = np.array( [ [i, j, k] + [-1] for i, j, k in product( (0,1), repeat=3) ], ndmin=2)
 OUTPUT = { hash( tuple(x) ): x[0] or x[1] for x in INPUT }
 
 def main():
