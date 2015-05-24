@@ -14,39 +14,52 @@ def main():
 
     print("Training...")
     for i in range(1000000):
+        #bottomUpTraining(prob)
         trainingGame(prob, oppProb, i)
 
     print( checkNonzero(prob) )
     print( checkNonzero(oppProb) )
     pkl.dump(prob, open( 'filled_prob_human_start.pkl', 'wb'))
 
+
     with open('filled_prob_human_start.pkl', 'rb') as f:
         prob = pkl.load(f)
 
+    oppProb = prob
+
     print( "Time elapsed: %s \n"%(time() - start) )
+
     playGame(prob, oppProb)
 
 def createDict():
     prob = {}
 
-    for i in product('XO-', repeat=9):
-        x = i.count('X')
-        o = i.count('O')
+    for board in product('XO-', repeat=9):
+        x = board.count('X')
+        o = board.count('O')
         if x < 5 and o < 5 and abs(x-o) <= 1:
-            prob[''.join(i)] = [50]*9
+            prob[''.join(board)] = [50]*9
 
     return prob
 
+def bottomUpTraining(prob):
+    for i in range(0, 9, -1):
+        for board in product('XO-', repeat=i):
+            x = board.count('X')
+            o = board.count('O')
+            if x < 5 and o < 5 and abs(x-o) <= 1 and not checkWin(board):
+                pass
+
 def trainingGame(prob, oppProb, gameNum):
-    board = 'O' + '-'*8
+    board = '-'*9
     score = [0]*8
-    myTurn(board, prob, oppProb, score, gameNum, 1)  # modifies prob
+    oppTurn(board, prob, oppProb, score, gameNum, 1)  # modifies prob
 
 def myTurn(board, prob, oppProb, score, gameNum, depth):
     gwinner = checkWin(score, board)
     if gwinner: return gwinner
 
-    if 100000 < gameNum:
+    if False:
         move = weighted_choice( getMoves(board), prob[board] )
     else:
         move = choice( getMoves(board) )
@@ -73,7 +86,7 @@ def oppTurn(board, prob, oppProb, score, gameNum, depth):
     gwinner = checkWin(score, board)
     if gwinner: return gwinner
 
-    if 100000 < gameNum and 0 < depth:
+    if False:
         move = weighted_choice( getMoves(board), oppProb[board] )
     else:
         move = choice( getMoves(board) )
@@ -193,6 +206,22 @@ def humanTurn(board, score):
     board = board[:move] + 'O' + board[move + 1:]
     updateScore(score, move, -1)
     return board
+
+
+def oldCheckWin(board):
+    ### check if any of the rows has winning combination
+    for i in range(3):
+        if len(set(board[i*3:i*3+3])) is  1 and board[i*3] is not '-': return True
+    ### check if any of the Columns has winning combination
+    for i in range(3):
+       if (board[i] is board[i+3]) and (board[i] is  board[i+6]) and board[i] is not '-':
+           return True
+    ### 2,4,6 and 0,4,8 cases
+    if board[0] is board[4] and board[4] is board[8] and board[4] is not '-':
+        return  True
+    if board[2] is board[4] and board[4] is board[6] and board[4] is not '-':
+        return  True
+    return False
 
 def checkWin(score, board):
     for i in score:
