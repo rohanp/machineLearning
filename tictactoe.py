@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+""" Tic Tac Toe with Machine Learning AI """
+
 __author__ = "Rohan Pandit"
 
 from itertools import product
