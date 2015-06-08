@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+""" A Multilayer Artificial Neural Network with Backpropagation """
+
 __author__ = 'Rohan Pandit'
 
-import numpy as np
 from itertools import product
 from time import clock
 from math import exp
+import numpy as np
 
 TRIALS = 70000
 ALPHA = 0.25 #learning rate
@@ -28,7 +31,7 @@ def train():
             target = OUTPUT[ hash( tuple(x) ) ]
 
             h_b = h_b[:, np.newaxis] # 4x1
-            h, v = h_b[:-1], v_b[:-1,:] # 3x1, 3x8
+            h, v = h_b[:-1], v_b[:-1,:] # 3x1, 3x8 (remove bias)
             x = x[:, np.newaxis] # 9x1
 
             delta = ((out - target) * out * (1 - out))[np.newaxis, :] # 1x8
